@@ -1,6 +1,7 @@
 package contacts;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ContactRepository {
@@ -8,12 +9,24 @@ public class ContactRepository {
     private List<Contact> contacts = new ArrayList<>();
 
     public List<Contact> getContacts() {
-        return contacts;
+        return Collections.unmodifiableList(contacts);
     }
 
-    public void saveContact(Contact contact) {
+    public Contact getContact(int index) {
+        return contacts.get(index);
+    }
+
+    public void addContact(Contact contact) {
         contacts.add(contact);
-        System.out.println("A record created");
-        System.out.println("A Phone Book with a single record created!");
+        System.out.println("The record added.");
+    }
+
+    public void removeContact(int index) {
+        contacts.remove(index);
+        System.out.println("The record removed!");
+    }
+
+    public int countContacts() {
+        return contacts.size();
     }
 }
