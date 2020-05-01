@@ -16,14 +16,12 @@ public class ContactRepository {
         return contacts.get(index);
     }
 
-    public void addContact(Contact contact) {
-        contacts.add(contact);
-        System.out.println("The record added.");
+    public boolean addContact(Contact contact) {
+        return contacts.add(contact);
     }
 
     public void removeContact(int index) {
         contacts.remove(index);
-        System.out.println("The record removed!");
     }
 
     public int countContacts() {
