@@ -27,4 +27,30 @@ public class ContactValidator {
     public boolean validateGender(String gender) {
         return "M".equalsIgnoreCase(gender) || "F".equalsIgnoreCase(gender);
     }
+
+    public boolean validateField(String field, String value) {
+        switch (field) {
+            case "birth":
+                return validateBirthDate(value);
+            case "gender":
+                return validateGender(value);
+            case "number":
+                return validatePhoneNumber(value);
+            default:
+                return true; // for other fields when no validation required
+        }
+    }
+
+    public String getValidationMessage(String field) {
+        switch (field) {
+            case "birth":
+                return "Bad birth date!";
+            case "gender":
+                return "Bad gender!";
+            case "number":
+                return "Bad phone number!";
+            default:
+                return null;
+        }
+    }
 }
