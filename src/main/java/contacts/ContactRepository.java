@@ -3,6 +3,7 @@ package contacts;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class ContactRepository {
 
@@ -20,8 +21,21 @@ public class ContactRepository {
         return contacts.add(contact);
     }
 
-    public void removeContact(int index) {
-        contacts.remove(index);
+    public List<Contact> searchContacts(String query) {
+        Pattern pattern = Pattern.compile(query, Pattern.CASE_INSENSITIVE);
+        List<Contact> results = new ArrayList<>();
+
+        for (Contact contact : contacts) {
+            if (pattern.matcher(contact.getStringRepresentation()).find()) {
+                results.add(contact);
+            }
+        }
+
+        return results;
+    }
+
+    public void removeContact(Contact contact) {
+        contacts.remove(contact);
     }
 
     public int countContacts() {
