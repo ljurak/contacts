@@ -9,7 +9,6 @@ public class OrganizationContact extends Contact {
     private String address;
 
     private OrganizationContact() {
-        super(false);
     }
 
     public String getName() {
@@ -31,6 +30,56 @@ public class OrganizationContact extends Contact {
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public String getEditableFields() {
+        return "name, address, number";
+    }
+
+    @Override
+    public String getInfo() {
+        return "Organization name: " + name + System.lineSeparator() +
+                "Address: " + address + System.lineSeparator() +
+                "Number: " + (hasNumber() ? phoneNumber : "[no data]") + System.lineSeparator() +
+                "Time created: " + creationDate + System.lineSeparator() +
+                "Time last edit: " + updateDate;
+    }
+
+    @Override
+    public String getStringRepresentation() {
+        StringBuilder sb = new StringBuilder();
+        if (name != null) {
+            sb.append(name).append(" ");
+        }
+        if (address != null) {
+            sb.append(address).append(" ");
+        }
+        if (phoneNumber != null) {
+            sb.append(phoneNumber).append(" ");
+        }
+        if (sb.charAt(sb.length() - 1) == ' ') {
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public void updateField(String field, String value) {
+        switch (field) {
+            case "name":
+                setName(value);
+                break;
+            case "address":
+                setAddress(value);
+                break;
+            case "number":
+                setPhoneNumber(value);
+                break;
+            default:
+                return;
+        }
+        setUpdateDate(LocalDateTime.now().withNano(0));
     }
 
     public static Builder builder() {
