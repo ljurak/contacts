@@ -104,11 +104,9 @@ public class PersonContact extends Contact {
                 setLastName(value);
                 break;
             case "birth":
-                if (value == null) {
-                    setBirthDate(null);
-                } else {
-                    setBirthDate(LocalDate.parse(value, DateTimeFormatter.ofPattern("d-M-yyyy")));
-                }
+                setBirthDate(value != null
+                        ? LocalDate.parse(value, DateTimeFormatter.ofPattern("d-M-yyyy"))
+                        : null);
                 break;
             case "gender":
                 setGender(Gender.valueByAbbr(value));
