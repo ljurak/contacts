@@ -15,7 +15,6 @@ public class PersonContact extends Contact {
     private Gender gender;
 
     private PersonContact() {
-        super(true);
     }
 
     public String getFirstName() {
@@ -53,6 +52,74 @@ public class PersonContact extends Contact {
     @Override
     public String toString() {
         return firstName + " " + lastName;
+    }
+
+    @Override
+    public String getEditableFields() {
+        return "name, surname, birth, gender, number";
+    }
+
+    @Override
+    public String getInfo() {
+        return "Name: " + firstName + System.lineSeparator() +
+                "Surname: " + lastName + System.lineSeparator() +
+                "Birth date: " + (birthDate != null ? birthDate : "[no data]") + System.lineSeparator() +
+                "Gender: " + (gender != null ? gender.getAbbr() : "[no data]") + System.lineSeparator() +
+                "Number: " + (hasNumber() ? phoneNumber : "[no data]") + System.lineSeparator() +
+                "Time created: " + creationDate + System.lineSeparator() +
+                "Time last edit: " + updateDate;
+    }
+
+    @Override
+    public String getStringRepresentation() {
+        StringBuilder sb = new StringBuilder();
+        if (firstName != null) {
+            sb.append(firstName).append(" ");
+        }
+        if (lastName != null) {
+            sb.append(lastName).append(" ");
+        }
+        if (birthDate != null) {
+            sb.append(birthDate).append(" ");
+        }
+        if (gender != null) {
+            sb.append(gender).append(" ");
+        }
+        if (phoneNumber != null) {
+            sb.append(phoneNumber).append(" ");
+        }
+        if (sb.charAt(sb.length() - 1) == ' ') {
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public void updateField(String field, String value) {
+        switch (field) {
+            case "name":
+                setFirstName(value);
+                break;
+            case "surname":
+                setLastName(value);
+                break;
+            case "birth":
+                if (value == null) {
+                    setBirthDate(null);
+                } else {
+                    setBirthDate(LocalDate.parse(value, DateTimeFormatter.ofPattern("d-M-yyyy")));
+                }
+                break;
+            case "gender":
+                setGender(Gender.valueByAbbr(value));
+                break;
+            case "number":
+                setPhoneNumber(value);
+                break;
+            default:
+                return;
+        }
+        setUpdateDate(LocalDateTime.now().withNano(0));
     }
 
     public static Builder builder() {
