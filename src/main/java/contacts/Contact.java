@@ -1,20 +1,18 @@
 package contacts;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.UUID;
 
 public abstract class Contact {
 
-    protected String phoneNumber;
+    protected String id = UUID.randomUUID().toString();
 
-    protected final boolean isPerson;
+    protected String phoneNumber;
 
     protected LocalDateTime creationDate;
 
     protected LocalDateTime updateDate;
-
-    protected Contact(boolean isPerson) {
-        this.isPerson = isPerson;
-    }
 
     public String getPhoneNumber() {
         return phoneNumber;
@@ -38,5 +36,34 @@ public abstract class Contact {
 
     public boolean hasNumber() {
         return !(phoneNumber == null || phoneNumber.equals(""));
+    }
+
+    public boolean isEditableField(String field) {
+        return getEditableFields().contains(field);
+    }
+
+    public abstract String getEditableFields();
+
+    public abstract void updateField(String field, String value);
+
+    public abstract String getInfo();
+
+    public abstract String getStringRepresentation();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Contact contact = (Contact) o;
+        return id.equals(contact.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }
