@@ -3,8 +3,11 @@ package contacts;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class PersonContact extends Contact {
+
+    private static final long serialVersionUID = 1L;
 
     private String firstName;
 
@@ -55,8 +58,8 @@ public class PersonContact extends Contact {
     }
 
     @Override
-    public String getEditableFields() {
-        return "name, surname, birth, gender, number";
+    public List<String> getEditableFields() {
+        return List.of("name", "surname", "birth", "gender", "number");
     }
 
     @Override
