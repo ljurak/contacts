@@ -1,8 +1,13 @@
 package contacts;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Scanner;
 
@@ -11,33 +16,37 @@ public class Main {
     private static final Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
+        String filename = null;
+        if (args.length > 0) {
+            filename = args[0];
+        }
+
         ContactValidator contactValidator = new ContactValidator();
         ContactRepository contactRepo = new ContactRepository();
 
+        loadContacts(contactRepo, filename);
+
         while (true) {
-            String action = getUserInput("Enter action (add, remove, edit, count, info, exit): ");
+            String action = getUserInput("[menu] Enter action (add, list, search, count, exit): ");
 
             switch (action) {
                 case "add":
                     processAddAction(contactValidator, contactRepo);
                     break;
-                case "remove":
-                    processRemoveAction(contactRepo);
+                case "list":
+                    processListAction(contactValidator, contactRepo);
                     break;
-                case "edit":
-                    processEditAction(contactValidator, contactRepo);
+                case "search":
+                    processSearchAction(contactValidator, contactRepo);
                     break;
                 case "count":
                     processCountAction(contactRepo);
                     break;
-                case "info":
-                    processInfoAction(contactRepo);
-                    break;
                 case "exit":
-                    processExitAction();
+                    processExitAction(contactRepo, filename);
                     break;
                 default:
-                    System.out.println("Incorrect option! Try again.\n");
+                    System.out.println("Incorrect option! Try again." + System.lineSeparator());
                     break;
             }
         }
@@ -56,7 +65,21 @@ public class Main {
                 addOrganization(contactValidator, contactRepo);
                 break;
             default:
-                System.out.println("Incorrect option! Try again.\n");
+                System.out.println("Incorrect option! Try again." + System.lineSeparator());
+                break;
+        }
+
+        String next = getUserInput("[add] Enter action (back, again): ");
+
+        switch (next) {
+            case "back":
+                System.out.println();
+                break;
+            case "again":
+                processAddAction(contactValidator, contactRepo);
+                break;
+            default:
+                System.out.println("Incorrect option! Try again." + System.lineSeparator());
                 break;
         }
     }
@@ -78,7 +101,7 @@ public class Main {
 
         String phoneNumber = getUserInput("Enter the number: ");
         if (!contactValidator.validatePhoneNumber(phoneNumber)) {
-            System.out.println("Wrong number format!");
+            System.out.println("Bad number format!");
         }
 
         PersonContact contact = PersonContact.builder()
@@ -102,7 +125,7 @@ public class Main {
 
         String phoneNumber = getUserInput("Enter the number: ");
         if (!contactValidator.validatePhoneNumber(phoneNumber)) {
-            System.out.println("Wrong number format!");
+            System.out.println("Bad number format!");
         }
 
         OrganizationContact contact = OrganizationContact.builder()
@@ -117,180 +140,173 @@ public class Main {
         System.out.println();
     }
 
-    /* REMOVING CONTACT */
+    /* LISTING CONTACTS */
 
-    private static void processRemoveAction(ContactRepository contactRepo) {
+    private static void processListAction(ContactValidator contactValidator, ContactRepository contactRepo) {
         if (contactRepo.countContacts() == 0) {
-            System.out.println("No records to remove!\n");
+            System.out.println("No records to list!" + System.lineSeparator());
             return;
         }
 
         listContacts(contactRepo.getContacts());
+        System.out.println();
 
-        int record = Integer.parseInt(getUserInput("Select a record: "));
+        String next = getUserInput("[list] Enter action ([number], back): ");
 
-        contactRepo.removeContact(record - 1);
-        System.out.println("The record removed!\n");
-    }
-
-    /* UPDATING CONTACT */
-
-    private static void processEditAction(ContactValidator contactValidator, ContactRepository contactRepo) {
-        if (contactRepo.countContacts() == 0) {
-            System.out.println("No records to edit!");
-            return;
-        }
-
-        listContacts(contactRepo.getContacts());
-
-        int record = Integer.parseInt(getUserInput("Select a record: "));
-        Contact contact = contactRepo.getContact(record - 1);
-
-        if (contact.isPerson) {
-            PersonContact person = (PersonContact) contact;
-            editPerson(person, contactValidator);
+        if (next.equals("back")) {
+            System.out.println();
         } else {
-            OrganizationContact organization = (OrganizationContact) contact;
-            editOrganization(organization, contactValidator);
+            int record = Integer.parseInt(next);
+            Contact contact = contactRepo.getContact(record - 1);
+
+            System.out.println(contact.getInfo());
+            System.out.println();
+
+            processContactAction(contact, contactValidator, contactRepo);
         }
     }
 
-    private static void editPerson(PersonContact person, ContactValidator contactValidator) {
-        String field = getUserInput("Select a field (name, surname, birth, gender, number): ");
+    /* SEARCHING CONTACTS */
 
-        switch (field) {
-            case "name":
-                person.setFirstName(getUserInput("Enter the name: "));
+    private static void processSearchAction(ContactValidator contactValidator, ContactRepository contactRepo) {
+        String query = getUserInput("Enter search query: ");
+        List<Contact> found = contactRepo.searchContacts(query);
+
+        printSearchResults(found);
+
+        String next = getUserInput("[search] Enter action ([number], back, again): ");
+
+        switch (next) {
+            case "back":
+                System.out.println();
                 break;
-            case "surname":
-                person.setLastName(getUserInput("Enter the surname: "));
-                break;
-            case "number":
-                String phoneNumber = getUserInput("Enter the number: ");
-                if (contactValidator.validatePhoneNumber(phoneNumber)) {
-                    person.setPhoneNumber(phoneNumber);
-                } else {
-                    person.setPhoneNumber(null);
-                    System.out.println("Wrong number format!");
-                }
-                break;
-            case "birth":
-                String birthDate = getUserInput("Enter the birth date: ");
-                if (contactValidator.validateBirthDate(birthDate)) {
-                    person.setBirthDate(LocalDate.parse(birthDate, DateTimeFormatter.ofPattern("d-M-yyyy")));
-                } else {
-                    person.setBirthDate(null);
-                    System.out.println("Bad birth date!");
-                }
-                break;
-            case "gender":
-                String gender = getUserInput("Enter the gender (M, F): ");
-                if (contactValidator.validateGender(gender)) {
-                    person.setGender(Gender.valueByAbbr(gender));
-                } else {
-                    person.setGender(null);
-                    System.out.println("Bad gender!");
-                }
+            case "again":
+                processSearchAction(contactValidator, contactRepo);
                 break;
             default:
-                System.out.println("Incorrect option! Try again.\n");
-                return;
-        }
+                int record = Integer.parseInt(next);
+                Contact contact = found.get(record - 1);
 
-        person.setUpdateDate(LocalDateTime.now().withNano(0));
-        System.out.println("The record updated!\n");
+                System.out.println(contact.getInfo());
+                System.out.println();
+
+                processContactAction(contact, contactValidator, contactRepo);
+
+                break;
+        }
     }
 
-    private static void editOrganization(OrganizationContact organization, ContactValidator contactValidator) {
-        String field = getUserInput("Select a field (name, address, number): ");
+    /* PROCESSING CONTACT */
 
-        switch (field) {
-            case "name":
-                organization.setName(getUserInput("Enter the name: "));
-                break;
-            case "address":
-                organization.setAddress(getUserInput("Enter the address: "));
-                break;
-            case "number":
-                String phoneNumber = getUserInput("Enter the number: ");
-                if (contactValidator.validatePhoneNumber(phoneNumber)) {
-                    organization.setPhoneNumber(phoneNumber);
-                } else {
-                    organization.setPhoneNumber(null);
-                    System.out.println("Wrong number format!");
-                }
-                break;
-            default:
-                System.out.println("Incorrect option! Try again.\n");
-                return;
+    private static void processContactAction(Contact contact, ContactValidator contactValidator, ContactRepository contactRepo) {
+        while (true) {
+            String action = getUserInput("[record] Enter action (edit, delete, menu): ");
+
+            switch (action) {
+                case "edit":
+                    processEditAction(contact, contactValidator);
+                    break;
+                case "delete":
+                    processDeleteAction(contact, contactRepo);
+                    return;
+                case "menu":
+                    System.out.println();
+                    return;
+                default:
+                    System.out.println("Incorrect option! Try again." + System.lineSeparator());
+                    break;
+            }
         }
+    }
 
-        organization.setUpdateDate(LocalDateTime.now().withNano(0));
-        System.out.println("The record updated!\n");
+    /* EDITING CONTACT */
+
+    private static void processEditAction(Contact contact, ContactValidator contactValidator) {
+        String field = getUserInput("Select a field (" + printEditableFields(contact.getEditableFields()) + "): ");
+        if (contact.isEditableField(field)) {
+            String value = getUserInput("Enter the " + field + ": ");
+
+            if (contactValidator.validateField(field, value)) {
+                contact.updateField(field, value);
+            } else {
+                contact.updateField(field, null);
+                System.out.println(contactValidator.getValidationMessage(field));
+            }
+            System.out.println("The record updated!");
+            System.out.println(contact.getInfo() + System.lineSeparator());
+        } else {
+            System.out.println("Incorrect option! Try again." + System.lineSeparator());
+        }
+    }
+
+    /* DELETING CONTACT */
+
+    private static void processDeleteAction(Contact contact, ContactRepository contactRepo) {
+        contactRepo.removeContact(contact);
+        System.out.println("The record removed!" + System.lineSeparator());
     }
 
     /* COUNTING CONTACTS */
 
     private static void processCountAction(ContactRepository contactRepo) {
-        System.out.println("The Phone Book has " + contactRepo.countContacts() + " records.\n");
-    }
-
-    /* INFO ABOUT CONTACT */
-
-    private static void processInfoAction(ContactRepository contactRepo) {
-        if (contactRepo.countContacts() == 0) {
-            System.out.println("No records to list!");
-            return;
-        }
-
-        listContacts(contactRepo.getContacts());
-
-        int record = Integer.parseInt(getUserInput("Select a record: "));
-        Contact contact = contactRepo.getContact(record - 1);
-
-        if (contact.isPerson) {
-            PersonContact person = (PersonContact) contact;
-            showPersonInfo(person);
-        } else {
-            OrganizationContact organization = (OrganizationContact) contact;
-            showOrganizationInfo(organization);
-        }
-        System.out.println();
-    }
-
-    private static void showPersonInfo(PersonContact person) {
-        System.out.println("Name: " + person.getFirstName());
-        System.out.println("Surname: " + person.getLastName());
-
-        String birthDate = (person.getBirthDate() != null) ? person.getBirthDate().toString() : "[no data]";
-        System.out.println("Birth date: " + birthDate);
-
-        String gender = (person.getGender() != null) ? person.getGender().getAbbr() : "[no data]";
-        System.out.println("Gender: " + gender);
-
-        String phoneNumber = person.hasNumber() ? person.getPhoneNumber() : "[no data]";
-        System.out.println("Number: " + phoneNumber);
-
-        System.out.println("Time created: " + person.getCreationDate());
-        System.out.println("Time last edit: " + person.getUpdateDate());
-    }
-
-    private static void showOrganizationInfo(OrganizationContact organization) {
-        System.out.println("Organization name: " + organization.getName());
-        System.out.println("Address: " + organization.getAddress());
-
-        String phoneNumber = organization.hasNumber() ? organization.getPhoneNumber() : "[no data]";
-        System.out.println("Number: " + phoneNumber);
-
-        System.out.println("Time created: " + organization.getCreationDate());
-        System.out.println("Time last edit: " + organization.getUpdateDate());
+        System.out.println("The Phone Book has " + contactRepo.countContacts() + " records." + System.lineSeparator());
     }
 
     /* EXIT PROGRAM */
 
-    private static void processExitAction() {
+    private static void processExitAction(ContactRepository contactRepo, String filename) {
+        saveContacts(contactRepo, filename);
         System.out.println("Bye!");
         System.exit(0);
+    }
+
+    /* SAVING CONTACTS */
+
+    private static void saveContacts(ContactRepository contactRepo, String filename) {
+        if (filename != null) {
+            System.out.println("Saving data to: " + filename);
+
+            try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(filename)))) {
+                try {
+                    out.writeInt(contactRepo.countContacts());
+
+                    for (Contact contact : contactRepo.getContacts()) {
+                        out.writeObject(contact);
+                    }
+                } catch (IOException e) {
+                    System.out.println("Error occurred: " + e.getMessage());
+                }
+            } catch (IOException e) {
+                System.out.println("Error occurred when trying to write file: " + filename);
+            }
+        }
+    }
+
+    /* LOADING CONTACTS */
+
+    private static void loadContacts(ContactRepository contactRepo, String filename) {
+        if (filename != null) {
+            File file = new File(filename);
+
+            if (file.exists() && file.isFile()) {
+                System.out.println("Loading data from: " + filename);
+
+                try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+                    try {
+                        int n = in.readInt();
+
+                        for (int i = 0; i < n; i++) {
+                            Contact contact = (Contact) in.readObject();
+                            contactRepo.addContact(contact);
+                        }
+                    } catch (IOException | ClassNotFoundException e) {
+                        System.out.println("Error occurred: " + e.getMessage());
+                    }
+                } catch (IOException e) {
+                    System.out.println("Error occurred when trying to read file: " + filename);
+                }
+            }
+        }
     }
 
     private static String getUserInput(String prompt) {
@@ -302,5 +318,28 @@ public class Main {
         for (int i = 0; i < contacts.size(); i++) {
             System.out.printf("%d. %s%n", i + 1, contacts.get(i));
         }
+    }
+
+    private static String printEditableFields(List<String> fields) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < fields.size(); i++) {
+            sb.append(fields.get(i));
+            if (i < fields.size() - 1) {
+                sb.append(", ");
+            }
+        }
+        return sb.toString();
+    }
+
+    private static void printSearchResults(List<Contact> contacts) {
+        if (contacts.isEmpty()) {
+            System.out.println("Found no results.");
+        } else if (contacts.size() == 1) {
+            System.out.println("Found 1 result:");
+        } else {
+            System.out.println("Found " + contacts.size() + " results:");
+        }
+        listContacts(contacts);
+        System.out.println();
     }
 }
