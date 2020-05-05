@@ -1,10 +1,12 @@
 package contacts;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-public abstract class Contact {
+public abstract class Contact implements Serializable {
 
     protected String id = UUID.randomUUID().toString();
 
@@ -42,7 +44,7 @@ public abstract class Contact {
         return getEditableFields().contains(field);
     }
 
-    public abstract String getEditableFields();
+    public abstract List<String> getEditableFields();
 
     public abstract void updateField(String field, String value);
 
